@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>VueJS.id - To-do List App</title>
+  <style>
+    a { text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <div id="app">
+
+    <input type="text" v-model="newTask" @keyup.enter="addTask">
+    <button @click="addTask">Add Task</button>
+
+    <ul>
+      <li v-for="item in items" :key="item.id">
+
+        <a href="#" v-if="item.done" @click="doneToggle(item)">✅</a>
+        <a href="#" v-if="!item.done" @click="doneToggle(item)">🔲</a>
+
+        <input type="text" v-model="editTask" v-if="editId === item.id">
+        <span v-else>{{ item.name }}</span>
+
+        <span v-if="!editId">
+          <button @click="remove(item)">&times;</button>
+          <button @click="edit(item)">Edit</button>
+        </span>
+        <span v-if="editId === item.id">
+          <button @click="update(item)">Update</button>
+          <button @click="cancel">Cancel</button>
+        </span>
+      </li>
+    </ul>
+  </div>
+
+
+
+  <script src="https://unpkg.com/axios@0.18.0/dist/axios.min.js"></script>
+  <script src="https://unpkg.com/vue"></script>
+  <script>
+
+    axios.defaults.baseURL = 'http://localhost:3000';
+    axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
+
+    new Vue({
+      el: '#app',
+
+      data() {
+        return {
+          newTask: '',
+
+          editTask: '',
+          editId: null,
+
+          items: []
+        }
+      },
+
+      mounted() {
+        this.getList()
+      },
+
+      methods: {
+
+        async getList() {
+          const response = await axios.get('tasks')
+          this.items = response.data
+        },
+
+        async addTask() {
+          const payload = {
+            name: this.newTask
+          }
+
+          const response = await axios.post('tasks', payload)
+
+          this.items.push({
+            name: this.newTask
+          })
+
+          this.newTask = ''
+
+          this.getList()
+
+        },
+
+        async remove(item) {
+          const response = await axios.delete(`tasks/${item.id}`)
+
+          const index = this.items.indexOf(item)
+          this.items.splice(index, 1)
+        },
+
+        edit(item) {
+          this.editId = item.id
+          this.editTask = item.name
+        },
+
+        async update(item) {
+          const payload = {
+            id: item.id,
+            done: item.done,
+            name: this.editTask
+          }
+
+          const response = await axios.put(`tasks/${item.id}`, payload)
+          this.getList()
+          this.cancel()
+        },
+
+        cancel() {
+          this.editId = ''
+          this.editTask = ''
+        },
+
+        async doneToggle(item) {
+          const payload = {
+            name: item.name,
+          }
+
+          payload.done = item.done ? false : true
+
+          const response = await axios.put(`tasks/${item.id}`, payload)
+          this.getList()
+        },
+
+      }
+
+    })
+  </script>
+</body>
+</html>
